@@ -1,0 +1,73 @@
+From b8218e3fae78fc9977fa867a121ae11b2ab35d4e Mon Sep 17 00:00:00 2001
+From: Kenny Levinsen <kl@kl.wtf>
+Date: Sat, 27 Feb 2021 14:47:46 +0100
+Subject: [PATCH] proto: Fix signed-ness error
+
+---
+ gtkgreet/proto.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gtkgreet/proto.c b/gtkgreet/proto.c
+index 9261949..cd582bd 100644
+--- a/gtkgreet/proto.c
++++ b/gtkgreet/proto.c
+@@ -21,7 +21,7 @@ struct header {
+ 
+ static int write_req(int fd, struct json_object* req) {
+     const char* reqstr = json_object_get_string(req);
+-    uint32_t len = strlen(reqstr);
++    ssize_t len = (ssize_t)strlen(reqstr);
+     char* headerp = (char*)&len;
+     ssize_t off = 0;
+ 
+-- 
+2.32.0
+
+From 3471aaaaee4619fd4aded85803b27b4a8dff41a6 Mon Sep 17 00:00:00 2001
+From: Ryan Farley <ryan.farley@gmx.com>
+Date: Thu, 25 Mar 2021 00:35:23 -0500
+Subject: [PATCH] proto: use uint32_t offsets and message lengths
+
+As the protocol imposes a hard 32-bit limit on message size, and the
+affected functions' offset value can never go negative, just use
+uint32_t for the lot. Fully fixes the signedness errors partially
+corrected in b8218e3fae78fc9977fa867a121ae11b2ab35d4e while avoiding
+the possibility of silent truncation (either through an overlong
+message or running on a big-endian host).
+---
+ gtkgreet/proto.c | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/gtkgreet/proto.c b/gtkgreet/proto.c
+index cd582bd..a527e85 100644
+--- a/gtkgreet/proto.c
++++ b/gtkgreet/proto.c
+@@ -21,9 +21,13 @@ struct header {
+ 
+ static int write_req(int fd, struct json_object* req) {
+     const char* reqstr = json_object_get_string(req);
+-    ssize_t len = (ssize_t)strlen(reqstr);
+-    char* headerp = (char*)&len;
+-    ssize_t off = 0;
++    size_t len = strlen(reqstr);
++    if (len > 0xFFFFFFFF) {
++	    goto error;
++    }
++    uint32_t header = len;
++    char* headerp = (char*)&header;
++    uint32_t off = 0;
+ 
+     while (off < 4) {
+         ssize_t n = write(fd, &headerp[off], 4-off);
+@@ -51,7 +55,7 @@ static struct json_object* read_resp(int fd) {
+     struct json_object* resp = NULL;
+     char *respstr = NULL;
+     uint32_t len;
+-    ssize_t off = 0;
++    uint32_t off = 0;
+ 
+     while (off < 4) {
+         char* headerp = (char*)&len;
+-- 
+2.32.0
+

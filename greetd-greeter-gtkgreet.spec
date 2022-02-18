@@ -6,6 +6,7 @@ License:	MIT
 Group:		Applications
 Source0:	https://git.sr.ht/~kennylevinsen/gtkgreet/archive/%{version}.tar.gz
 # Source0-md5:	f027ae4d4e63130cf349fdecb96afbad
+Patch0:		32bit.patch
 URL:		https://git.sr.ht/~kennylevinsen/gtkgreet
 BuildRequires:	gtk+3-devel
 BuildRequires:	gtk-layer-shell-devel
@@ -24,6 +25,7 @@ GTK based greeter for greetd, to be run under cage or similar.
 
 %prep
 %setup -q -n gtkgreet-%{version}
+%patch0 -p1
 
 %build
 %meson build
