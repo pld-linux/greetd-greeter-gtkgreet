@@ -13,6 +13,7 @@ BuildRequires:	gtk-layer-shell-devel
 BuildRequires:	json-c-devel
 BuildRequires:	meson >= 0.47.0
 BuildRequires:	ninja
+BuildRequires:	pkgconfig
 BuildRequires:	rpmbuild(macros) >= 1.736
 BuildRequires:	scdoc >= 1.9.7
 Requires:	greetd
